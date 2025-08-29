@@ -144,7 +144,7 @@ async function authenticateUser(
     });
 
     // Step 2: Save session via our test endpoint
-    const baseURL = process.env.TEST_BASE_URL || "http://localhost:3000";
+    const baseURL = process.env.TEST_BASE_URL;
     const sessionResponse = await request.post(
       `${baseURL}/api/test/set-session`,
       {

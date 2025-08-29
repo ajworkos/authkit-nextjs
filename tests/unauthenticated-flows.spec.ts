@@ -63,8 +63,8 @@ test.describe("Unauthenticated User Flows", () => {
     ).toBeVisible();
 
     // URL should not be the original app URL
-    const baseURL = process.env.TEST_BASE_URL || "http://localhost:3000";
+    const baseURL = process.env.TEST_BASE_URL;
     expect(page.url()).not.toBe(baseURL + "/");
-    expect(page.url()).not.toContain(new URL(baseURL).host);
+    expect(page.url()).not.toContain(new URL(baseURL!).host);
   });
 });

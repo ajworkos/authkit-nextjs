@@ -1,10 +1,10 @@
-# E2E Testing with WorkOS AuthKit
+# E2E Testing with Playwright and WorkOS AuthKit
 
-This directory contains end-to-end tests for WorkOS AuthKit authentication using programmatic authentication instead of UI-based login flows.
+End-to-end tests for WorkOS AuthKit authentication using programmatic authentication.
 
 ## Setup
 
-1. **Environment Variables**
+**Environment Variables:**
 
 ```bash
 # WorkOS Configuration
@@ -15,123 +15,73 @@ NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/callback
 
 # Test Configuration (optional)
 TEST_BASE_URL=http://localhost:3000
-
-# Test Users
-TEST_USER_ADMIN_EMAIL=admin@test-org.test
-TEST_USER_ADMIN_PASSWORD=admin-password
-
-TEST_USER_REGULAR_EMAIL=user@test-org.test
-TEST_USER_REGULAR_PASSWORD=user-password
-
-# Legacy single user support
-TEST_USER_EMAIL=test-user@test-org.test
-TEST_USER_PASSWORD=test-password
 ```
 
-2. **Install Dependencies**
-
-```bash
-npm install
-```
-
-3. **Run Tests**
+**Run Tests:**
 
 ```bash
 npm run test:playwright
 ```
 
-## Test Endpoint
+## Test Endpoints
 
-The tests use a test-only API endpoint for programmatic authentication:
+The tests use test-only API endpoints for programmatic authentication:
 
 **Endpoint:** `POST /api/test/set-session`
 
-**Request Body:**
+- **Purpose:** Create session from authentication tokens
+- **Body:** `{ user, accessToken, refreshToken }`
+- **Response:** Uses WorkOS AuthKit's `saveSession` method to create encrypted session cookie
 
-```json
-{
-  "user": { "email": "...", "id": "...", ... },
-  "accessToken": "...",
-  "refreshToken": "..."
-}
-```
-
-**Response:** Sets encrypted `wos-session` cookie using WorkOS AuthKit's `saveSession` method.
-
-**Security:** Only available in non-production environments.
+The endpoint is disabled in production environments.
 
 ## Usage
 
-Import the test fixtures:
+**Import fixtures:**
 
 ```typescript
 import { test, expect } from "./fixtures";
 ```
 
-**Authenticated Tests:**
+**Authenticated tests:**
 
 ```typescript
 test.describe("Admin Features", () => {
   test.use({ user: process.env.TEST_USER_ADMIN_EMAIL });
 
-  test("can access admin panel", async ({ page }) => {
+  test("admin panel access", async ({ page }) => {
     await page.goto("/admin"); // Already authenticated
   });
 });
 ```
 
-**Unauthenticated Tests:**
+**Unauthenticated tests:**
 
 ```typescript
 test.describe("Public Features", () => {
   // No test.use() = unauthenticated
 
-  test("shows login page", async ({ page }) => {
+  test("login page", async ({ page }) => {
     await page.goto("/");
   });
 });
 ```
 
-**Mixed Authentication:**
+## Authentication System
 
-```typescript
-test.describe("Mixed Tests", () => {
-  test("public access", async ({ page }) => {
-    // Unauthenticated
-    await page.goto("/");
-  });
+**User Resolution:** Tests resolve users by email address from environment variables matching `TEST_USER_<NAME>_EMAIL/PASSWORD`.
 
-  test("admin access", async ({ page }) => {
-    test.use({ user: process.env.TEST_USER_ADMIN_EMAIL });
-    await page.goto("/admin");
-  });
-});
-```
+**Caching:** Authentication cookies are cached per email for 1 hour.
 
-## User Resolution
+**Flow:**
 
-The fixture system resolves users by email address. Users are automatically discovered from environment variables matching the pattern:
-
-```
-TEST_USER_<NAME>_EMAIL=email@domain.com
-TEST_USER_<NAME>_PASSWORD=password
-```
-
-**Supported user formats:**
-
-- `process.env.TEST_USER_ADMIN_EMAIL` (recommended)
-- `"admin@test-org.test"` (direct email)
-
-## Authentication Flow
-
-1. **API Authentication:** Uses WorkOS SDK to authenticate with email/password
-2. **Session Creation:** POSTs to `/api/test/set-session` which calls `saveSession`
-3. **Cookie Injection:** Extracts `wos-session` cookie and injects into browser
-4. **Cache:** Cookies are cached per user for 1 hour
+1. API authentication via WorkOS SDK
+2. Session creation via `saveSession` endpoint
+3. Cookie extraction and browser injection
+4. Page navigation with authenticated state
 
 ## Files
 
 - `fixtures.ts` - Authentication fixture system
-- `authenticated-flows.spec.ts` - Tests for logged-in users
-- `unauthenticated-flows.spec.ts` - Tests for anonymous users
-- `../src/app/api/test/set-session/route.ts` - Test endpoint using `saveSession`
+- `authenticated-flows.spec.ts` - Tests for authenticated users
+- `unauthenticated-flows.spec.ts` - Tests for unauthenticated users
